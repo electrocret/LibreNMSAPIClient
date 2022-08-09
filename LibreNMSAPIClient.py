@@ -575,19 +575,19 @@ class LibreNMSAPIClient:
         match self.functions[self._function_name]['request_method']:
                 case 'DELETE':
                         for route in routes:
-                                responses.append(requests.delete( self._libre_url + route, self._header))
+                                responses.append(requests.delete( self._libre_url + route, headers=self._header))
                 case 'GET':
                         for route in routes:
-                                responses.append(requests.get( self._libre_url + route, self._header))
+                                responses.append(requests.get( self._libre_url + route, headers=self._header))
                 case 'PATCH':
                         for route in routes:
-                                responses.append(requests.patch( self._libre_url + route, self._header,json=request_data))
+                                responses.append(requests.patch( self._libre_url + route, headers=self._header,json=request_data))
                 case 'POST':
                         for route in routes:
                                 responses.append(requests.post( self._libre_url + route, self._header,json=request_data))
                 case 'PUT':
                         for route in routes:
-                                responses.append(requests.put( self._libre_url + route, self._header))
+                                responses.append(requests.put( self._libre_url + route, headers=self._header))
 
         call_output = []
         for response in responses:
