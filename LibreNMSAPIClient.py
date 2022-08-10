@@ -528,6 +528,8 @@ class LibreNMSAPIClient:
         output=''
         for qparam in qparams:
                 if type(qparam) == str:
+                        if qparam == "":
+                                continue
                         if first_qparam is True:
                                 output = output + '?' + qparam
                                 first_qparam=False
@@ -555,6 +557,12 @@ class LibreNMSAPIClient:
                                 output = output + self._gen_route(route,subparams)
                         return output
                elif type(param) == str:
+                        if param == "":
+                                if 'o' in self._flags:
+                                        if re.findall('/:.*?/',route) :
+                                          return self._gen_route(re.sub('/:.*?/',"/",route, 1).rstrip("/"),params)
+                                        return self._gen_route(re.sub('\/:.*',"/" ,route, 1).rstrip("/"),params)
+                                raise LibreNMSAPIClientException("API received empty parameter for %s" % route)
                         if re.findall('/:.*?/',route) :
                           return self._gen_route(re.sub('/:.*?/',"/%s/" % param,route, 1),params)
                         return self._gen_route(re.sub('\/:.*',"/%s" % param,route, 1),params)
