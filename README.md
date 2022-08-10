@@ -43,3 +43,7 @@ r-raw response object that was received from requests. Skips all JSON conversion
 c-combines all of the API responses into a single list instead of a separate list for each response.
 
 o-optional - makes all parameters optional.
+
+
+# Contributing
+If you want to contribute please fork this project, push your changes and send a pull request.
