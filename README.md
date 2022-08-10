@@ -23,7 +23,7 @@ You can input lists in the parameter fields and it will iterate through all poss
 For Query parameters, all list entries will be applied to all.
 
 
-## Function Flags:  
+## Function Flags  
 You can append function flags to the beginning of functions to adjust how the API behaves. {flags}_{function}({Parameters})
 
 i-ignore response error.
