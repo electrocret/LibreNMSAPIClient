@@ -13,6 +13,7 @@ import re
 ## e-entire response. Returns entire JSON object response
 ## r-raw response object that was received from requests. Skips all JSON conversion and most validation.
 ## c-combines all of the API responses into a single list instead of a separate list for each response.
+## o-optional - makes all parameters optional.
 ##
 
 class LibreNMSAPIClientException(Exception):
@@ -164,23 +165,27 @@ class LibreNMSAPIClient:
             'request_method': 'GET',
             'response_key':'graphs',
         },
-        'list_available_health_graphs' : { #Doesn't fully support yet. Optional parameters are in route.
+        'list_available_health_graphs' : {
             'route': '/api/v0/devices/:hostname/health/:type/:sensor_id',
             'request_method': 'GET',
             'response_key':'graphs',
+            'flags':'o'
         },
-        'list_available_wireless_graphs' : { #Doesn't fully support yet. Optional parameters are in route.
+        'list_available_wireless_graphs' : {
             'route': '/api/v0/devices/:hostname/wireless/:type/:sensor_id',
             'request_method': 'GET',
             'response_key':'graphs',
+            'flags':'o'
         },
-        'get_health_graph' : { #Doesn't support yet. Optional parameters are in route, and output is graph image
+        'get_health_graph' : { #Doesn't support yet. output is graph image
             'route': '/api/v0/devices/:hostname/graphs/health/:type/:sensor_id',
             'request_method': 'GET',
+            'flags':'o'
         },
-        'get_wireless_graph' : { #Doesn't support yet. Optional parameters are in route, and output is graph image
+        'get_wireless_graph' : { #Doesn't support yet. output is graph image
             'route': '/api/v0/devices/:hostname/graphs/wireless/:type/:sensor_id',
             'request_method': 'GET',
+            'flags':'o'
         },
         'get_graph_generic_by_hostname' : { #Need to look into compatibility. docs say response is graph image
             'route': '/api/v0/devices/:hostname/:type',
@@ -255,12 +260,12 @@ class LibreNMSAPIClient:
         'add_device' : {
             'route': '/api/v0/devices',
             'request_method': 'POST',
-            'response_key':'key', 
+            'response_key':'devices', 
         },
-        'list_oxidized' : {  #Doesn't support yet. has optional  param and JSON output isn't in a dictionary per docs
+        'list_oxidized' : {  #Doesn't support per docs. JSON output isn't in a dictionary per docs.
             'route': '/api/v0/oxidized/:hostname',
             'request_method': 'GET',
-
+            'flags':'o'
         },
         'update_device_field' : {
             'route': '/api/v0/devices/:hostname',
@@ -371,14 +376,10 @@ class LibreNMSAPIClient:
             'response_key':'ports', 
         },
         'search_ports' : {
-            'route': '/api/v0/ports/search/:search',
-            'request_method': 'GET',
-            'response_key':'ports', 
-        },
-        'search_ports_in_specific_column' : { #Need to look into better way of doing this. Probably will end up changing search_ports and making optional parameter, once they're supported.
             'route': '/api/v0/ports/search/:field/:search',
             'request_method': 'GET',
-            'response_key':'ports', 
+            'response_key':'ports',
+            'flags':'o'
         },
         'ports_with_associated_mac' : {
             'route': '/api/v0/ports/mac/:search',
@@ -485,7 +486,6 @@ class LibreNMSAPIClient:
         'delete_service_from_host' : {
             'route': '/api/v0/services/:service_id',
             'request_method': 'DELETE',
-            'response_key':'key', 
         },
         'list_vlans' : {
             'route': '/api/v0/resources/vlans',
@@ -523,23 +523,28 @@ class LibreNMSAPIClient:
             'response_key':'system', 
         },
     }
-    #Optional Parameters
-    def _gen_oparams(self,oparams,first_oparam=True):
+    #Generates Query Parameters
+    def _gen_qparams(self,qparams,first_qparam=True):
         output=''
-        for oparam in oparams:
-                if type(oparam) == list:
-                        output,first_oparam=self._gen_oparams(oparam,first_oparam)
-                elif type(oparam) == str:
-                        if first_oparam:
-                                output = output + '?' + oparam
-                                first_oparam=False
+        for qparam in qparams:
+                if type(qparam) == str:
+                        if first_qparam is True:
+                                output = output + '?' + qparam
+                                first_qparam=False
                         else:
-                                output = output + '&' + oparam
+                                output = output + '&' + qparam
+                elif type(qparam) == list:
+                        nest_output,first_qparam=self._gen_qparams(qparam,first_qparam)
+                        output= output + nest_output
                 else:
                         raise LibreNMSAPIClientException("API received unsupported parameter value: %s " % param)
-        return output,first_oparam       
-    
+        return output,first_qparam       
+    #Generates Route using parameters
     def _gen_route(self,route,params):
+        if len(params) == 0:
+                if re.findall('\/:.*',route):
+                        route=re.sub('\/:.*',"",route,1)
+                return [route]
         if re.findall('\/:',route) : #Checks if any params are in URL path ( /: ) ie required parameter.
                param=params.pop()
                if type(param) == list :
@@ -555,11 +560,11 @@ class LibreNMSAPIClient:
                         return self._gen_route(re.sub('\/:.*',"/%s" % param,route, 1),params)
                raise LibreNMSAPIClientException("API received unsupported parameter value: %s " % param)
         if params:
-                oparams,fp=self._gen_oparams(params)
-                route = route + oparams
+                qparams,fp=self._gen_qparams(params)
+                route = route + qparams
         return [route]
 
-                
+    #Performs API Call
     def _apicall(self, *t_params):
         params=list(t_params)
         params.reverse()
@@ -568,7 +573,7 @@ class LibreNMSAPIClient:
                 raise LibreNMSAPIClientException("API '%s' function called without required request data." % self._function_name)
             request_data = params.pop()
 
-        if len(re.findall('\/:',self.functions[self._function_name]['route'])) > len(params): #Ensures the needed number of Route paramuments are provided
+        if len(re.findall('\/:',self.functions[self._function_name]['route'])) > len(params) and 'o' not in self._flags: #Ensures the needed number of Route paramuments are provided
             raise LibreNMSAPIClientException("API '%s' function called without required parameters." % self._function_name)
         routes=self._gen_route(self.functions[self._function_name]['route'],params) #Generate Function Route/s with parameters
         responses=[]
@@ -584,7 +589,7 @@ class LibreNMSAPIClient:
                                 responses.append(requests.patch( self._libre_url + route, headers=self._header,json=request_data))
                 case 'POST':
                         for route in routes:
-                                responses.append(requests.post( self._libre_url + route, self._header,json=request_data))
+                                responses.append(requests.post( self._libre_url + route, headers=self._header,json=request_data))
                 case 'PUT':
                         for route in routes:
                                 responses.append(requests.put( self._libre_url + route, headers=self._header))
@@ -626,7 +631,7 @@ class LibreNMSAPIClient:
         self._flags=''
         return call_output
 
-
+    #Returns meta API Call function
     def __getattr__(self, function_name):
         function_name=function_name.lower()
         if function_name not in self.functions:
