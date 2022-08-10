@@ -25,6 +25,7 @@ For Query parameters, all list entries will be applied to all.
 
 ## Function Flags:  
 You can append function flags to the beginning of functions to adjust how the API behaves. {flags}_{function}({Parameters})
+
 i-ignore response error.
 
 l-return response in list even if there's only one response/request
