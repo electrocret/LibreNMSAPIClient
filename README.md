@@ -3,9 +3,9 @@ A Python API client library for (https://www.librenms.org/ "LibreNMS").
 LibreNMS is a fully featured network monitoring system that provides a wealth of features and device support.  
 
 ## Quick start
-To begin import the API Client and create an instance of the LibreNMSAPIClient class. You can either specify Libre's URL (without trailing / ) and API Token or rely on the .env file. 
+To begin import the API Client and create an instance of the LibreNMSAPIClient class. You can either specify Libre's URL (without trailing / ) and API Token, or rely on the .env file.
 Once you have your API Client instance, you can begin calling Libre API functions directly as they appear in the Libre documentation. 
-The parameter order is: dataobject (if function requires one), then the route parameters in the order that they're in the route then Query parameters.
+The parameter order is: dataobject (if function requires one), then the route parameters in the order that they're in the route then any additional Query parameters.
 
 ``` python
 from LibreNMSAPIClient import LibreNMSAPIClient
@@ -18,7 +18,8 @@ print(testval)
 ```
 
 # Advanced
-You can input lists in the parameter fields and it will iterate through all possiblities for routes parameters. For Query parameters, all list entries will be applied to all.
+You can input lists in the parameter fields and it will iterate through all possiblities for routes parameters. 
+For Query parameters, all list entries will be applied to all.
 
 
 ## Function Flags:  
