@@ -4,7 +4,9 @@ LibreNMS is a fully featured network monitoring system that provides a wealth of
 
 ## Quick start
 To begin import the API Client and create an instance of the LibreNMSAPIClient class. You can either hard code Libre's URL (without trailing / ) and API Token in the script, or rely on the .env file.
+
 Once you have your API Client instance, you can begin calling Libre API functions directly as they appear in the Libre documentation. 
+
 The parameter order is: dataobject (if function requires one), then the route parameters in the order that they're in the route then any additional Query parameters.
 
 ``` python
