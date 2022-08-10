@@ -26,7 +26,7 @@ For Query parameters, all list entries will be applied to all.
 
 
 ## Function Flag  
-You can append function flags to the beginning of functions to adjust how the API behaves. 
+You can append function flags to the beginning of functions followed by and underscore to adjust how the API behaves. 
 
 {flags}_{function}({Parameters})
 
