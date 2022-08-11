@@ -353,6 +353,7 @@ class LibreNMSAPIClient:
         'add_port_group' : {
             'route': '/api/v0/port_groups',
             'request_method': 'POST',
+            'response_key':'id', 
         },
         'assign_port_group' : {
             'route': '/api/v0/port_groups/:port_group_id/assign',
@@ -556,7 +557,7 @@ class LibreNMSAPIClient:
                                 subparams.append(subparam)
                                 output = output + self._gen_route(route,subparams)
                         return output
-               elif type(param) == str:
+               elif type(param) == int or str:
                         if param == "":
                                 if 'o' in self._flags:
                                         if re.findall('/:.*?/',route) :
