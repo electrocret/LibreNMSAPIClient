@@ -29,6 +29,11 @@ class LibreNMSAPIClient:
 #            'response_key':'key', -specify's the response key API call returns otherwise gets 'message' value or 'status' value
 #            'flags':'', -Any required function flags.
 #        },
+        'list_functions' : {
+            'route': '/api/v0/',
+            'request_method': 'GET',
+            'flags': 'e'
+        },
         'get_alert' : {
             'route': '/api/v0/alerts/:id',
             'request_method': 'GET',
