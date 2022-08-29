@@ -50,5 +50,6 @@ If you want to contribute please fork this project, push your changes and send a
 
 # Todo
 -Better error codes
+
 -Support functions that output images
 
