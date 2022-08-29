@@ -47,3 +47,8 @@ o-optional - makes all parameters optional.
 
 # Contributing
 If you want to contribute please fork this project, push your changes and send a pull request.
+
+# Todo
+-Better error codes
+-Support functions that output images
+
