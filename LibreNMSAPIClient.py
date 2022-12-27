@@ -594,19 +594,19 @@ class LibreNMSAPIClient:
         match self.functions[self._function_name]['request_method']:
                 case 'DELETE':
                         for route in routes:
-                                responses.append(requests.delete( self._libre_url + route, headers=self._header))
+                                responses.append(requests.delete( self._libre_url + route, headers=self._header, verify = False))
                 case 'GET':
                         for route in routes:
-                                responses.append(requests.get( self._libre_url + route, headers=self._header))
+                                responses.append(requests.get( self._libre_url + route, headers=self._header, verify = False))
                 case 'PATCH':
                         for route in routes:
-                                responses.append(requests.patch( self._libre_url + route, headers=self._header,json=request_data))
+                                responses.append(requests.patch( self._libre_url + route, headers=self._header,json=request_data, verify = False))
                 case 'POST':
                         for route in routes:
-                                responses.append(requests.post( self._libre_url + route, headers=self._header,json=request_data))
+                                responses.append(requests.post( self._libre_url + route, headers=self._header,json=request_data, verify = False))
                 case 'PUT':
                         for route in routes:
-                                responses.append(requests.put( self._libre_url + route, headers=self._header))
+                                responses.append(requests.put( self._libre_url + route, headers=self._header, verify = False))
 
         call_output = []
         for response in responses:
@@ -662,7 +662,7 @@ class LibreNMSAPIClient:
         
     def __init__(self, libre_url=None, api_token=None):
                 self._flags=''
-                if api_token is None and api_url is None:
+                if api_token is None and libre_url is None:
                         from dotenv import load_dotenv
                         load_dotenv()
                         api_token = os.environ['LibreNMS_APIToken']
