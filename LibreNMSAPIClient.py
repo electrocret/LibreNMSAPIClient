@@ -587,7 +587,7 @@ class LibreNMSAPIClient:
                 raise LibreNMSAPIClientException("API '%s' function called without required request data." % self._function_name)
             request_data = params.pop()
 
-        if len(re.findall('\/:',self.functions[self._function_name]['route'])) > len(params) and 'o' not in self._flags: #Ensures the needed number of Route paramuments are provided
+        if len(re.findall('\/:',self.functions[self._function_name]['route'])) > len(params) and 'o' not in self._flags: #Ensures the needed number of Route parameters are provided
             raise LibreNMSAPIClientException("API '%s' function called without required parameters." % self._function_name)
         routes=self._gen_route(self.functions[self._function_name]['route'],params) #Generate Function Route/s with parameters
         responses=[]
@@ -613,7 +613,7 @@ class LibreNMSAPIClient:
                 if response.status_code < 200 or response.status_code > 299: #Check for invalid HTTP response
                         if 'i' in self._flags : #if ignore error flag is enabled
                                 continue
-                        raise LibreNMSAPIClientException("API received invalid HTTP response from %s" % response.url)
+                        raise LibreNMSAPIClientException("API received invalid HTTP response %s" % response.text)
                 if 'r' in self._flags:
                         call_output.append(request)
                 else:
