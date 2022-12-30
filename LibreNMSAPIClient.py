@@ -591,20 +591,19 @@ class LibreNMSAPIClient:
             raise LibreNMSAPIClientException("API '%s' function called without required parameters." % self._function_name)
         routes=self._gen_route(self.functions[self._function_name]['route'],params) #Generate Function Route/s with parameters
         responses=[]
-        match self.functions[self._function_name]['request_method']:
-                case 'DELETE':
+        if(self.functions[self._function_name]['request_method'] == 'DELETE'):
                         for route in routes:
                                 responses.append(requests.delete( self._libre_url + route, headers=self._header, verify = False))
-                case 'GET':
+        elif(self.functions[self._function_name]['request_method'] == 'GET'):
                         for route in routes:
                                 responses.append(requests.get( self._libre_url + route, headers=self._header, verify = False))
-                case 'PATCH':
+        elif(self.functions[self._function_name]['request_method'] == 'PATCH'):
                         for route in routes:
                                 responses.append(requests.patch( self._libre_url + route, headers=self._header,json=request_data, verify = False))
-                case 'POST':
+        elif(self.functions[self._function_name]['request_method'] == 'POST'):
                         for route in routes:
                                 responses.append(requests.post( self._libre_url + route, headers=self._header,json=request_data, verify = False))
-                case 'PUT':
+        elif(self.functions[self._function_name]['request_method'] == 'PUT'):
                         for route in routes:
                                 responses.append(requests.put( self._libre_url + route, headers=self._header, verify = False))
 
@@ -621,11 +620,11 @@ class LibreNMSAPIClient:
                         if 'status' not in response_edata:
                                 if 'i' in self._flags : #if ignore error flag is enabled
                                     continue
-                                raise LibreNMSAPIClientException("API received invalid JSON response from %s" % response.url)
+                                raise LibreNMSAPIClientException("API received invalid JSON response. %s" % response.text)
                         if response_edata['status'] != "ok":
                                 if 'i' in self._flags : #if ignore error flag is enabled
                                     continue
-                                raise LibreNMSAPIClientException("API received error response from %s" % response.url)
+                                raise LibreNMSAPIClientException("API received error response. %s" % response.text)
                         if 'e' in self._flags:
                                 call_output.append(response_edata)
                         else:
