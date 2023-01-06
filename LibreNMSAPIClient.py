@@ -530,19 +530,24 @@ class LibreNMSAPIClient:
         },
     }
     #Generates Query Parameters
-    def _gen_qparams(self,qparams,first_qparam=True):
+    def _gen_qparams(self,qparams,first_qparam=True,param_value=False):
         output=''
         for qparam in qparams:
                 if type(qparam) == str:
                         if qparam == "":
                                 continue
-                        if first_qparam is True:
+                        if param_value:
+                              output = output + '=' + qparam
+                              param_value=False
+                        elif first_qparam is True:
                                 output = output + '?' + qparam
                                 first_qparam=False
+                                param_value=True
                         else:
                                 output = output + '&' + qparam
+                                param_value=True
                 elif type(qparam) == list:
-                        nest_output,first_qparam=self._gen_qparams(qparam,first_qparam)
+                        nest_output,first_qparam=self._gen_qparams(qparam,first_qparam,param_value)
                         output= output + nest_output
                 else:
                         raise LibreNMSAPIClientException("API received unsupported parameter value: %s " % param)
@@ -574,6 +579,7 @@ class LibreNMSAPIClient:
                         return self._gen_route(re.sub('\/:.*',"/%s" % param,route, 1),params)
                raise LibreNMSAPIClientException("API received unsupported parameter value: %s " % param)
         if params:
+                params.reverse()
                 qparams,fp=self._gen_qparams(params)
                 route = route + qparams
         return [route]
