@@ -21,7 +21,7 @@ with open('FDB_Dependency_Generator.txt', 'w') as f:
                 FDB_count_map[counter_id]['count']=FDB_count_map[counter_id]['count'] + 1
         else:
                 FDB_count_map[counter_id]={'device_id':entry['device_id'],'count':1}
-    print("Generating Depenedency map for devices")
+    print("Generating Dependency map for devices")
     for device in libreapi.list_devices():
         Arp_entry=libreapi.list_arp(device['hostname'] if device['ip'] == "" else device['ip'])
         if len(Arp_entry) > 0:
