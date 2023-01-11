@@ -1,3 +1,5 @@
+#This Script builds Libre's dependency map based on the FDB.
+
 from Libs.LibreNMSAPIClient import LibreNMSAPIClient
 import sys
 libreapi =  LibreNMSAPIClient()
