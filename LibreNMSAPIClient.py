@@ -267,7 +267,7 @@ class LibreNMSAPIClient:
             'request_method': 'POST',
             'response_key':'devices', 
         },
-        'list_oxidized' : {  #Doesn't support per docs. JSON output isn't in a dictionary per docs.
+        'list_oxidized' : {  #Doesn't support per docs. JSON output isn't in a dictionary per docs. Workaround: json.loads(libreapi.r_list_oxidized().text)
             'route': '/api/v0/oxidized/:hostname',
             'request_method': 'GET',
             'flags':'o'
@@ -294,8 +294,8 @@ class LibreNMSAPIClient:
             'request_method': 'GET',
             'response_key':'nodes', 
         },
-        'get_oxidized_config' : {
-            'route': 'api/v0/oxidized/config/:device_name',
+        'get_oxidized_config' : { #Doesn't support per docs. JSON output isn't in a dictionary per docs. Workaround: json.loads(libreapi.ri_get_oxidized_config(device['hostname']).text)
+            'route': '/api/v0/oxidized/config/:device_name',
             'request_method': 'GET',
             'response_key':'config', 
         },
@@ -620,7 +620,7 @@ class LibreNMSAPIClient:
                                 continue
                         raise LibreNMSAPIClientException("API received invalid HTTP response %s" % response.text)
                 if 'r' in self._flags:
-                        call_output.append(request)
+                        call_output.append(response)
                 else:
                         response_edata=json.loads(response.text) #Convert response to JSON object
                         if 'status' not in response_edata:
