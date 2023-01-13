@@ -1,3 +1,6 @@
+#This script builds a Dependency Map in Libre first using FDB, then trying ARP, then trying xDP. 
+
+
 from Libs.LibreNMSAPIClient import LibreNMSAPIClient
 import sys
 libreapi =  LibreNMSAPIClient()
