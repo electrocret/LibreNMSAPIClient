@@ -42,8 +42,14 @@ def Try_xDP(device,device_dep_map): #Try looking up dependency by xDP Neighbor o
             return True
     return False
 
-
-    
+def Try_FDB(Arp_entry,FDB,FDB_count_map,mac_count=1):
+    parents=[]
+    for entry in FDB: #Try FDB - Look up source port of Mac Address (Devices with ports where only this Mac is being learned.)
+        if entry['mac_address'] == Arp_entry[0]['mac_address']:
+            PID=str(entry['port_id'])
+            if FDB_count_map[PID]['count']<= mac_count and str(FDB_count_map[PID]['device_id']) not in parents and FDB_count_map[PID]['device_id'] != device['device_id'] :
+                parents.append(str(FDB_count_map[PID]['device_id']))
+    return parents
 original_stdout = sys.stdout
 print("Starting!")
 with open('Dependency_Generator.txt', 'w') as f:
@@ -52,7 +58,6 @@ with open('Dependency_Generator.txt', 'w') as f:
     #Define Stat counters
     fail_counter=0
     success_counter=0
-    arp_rescue_counter=0
     arp_notfound=0
     
     print("Downloading FDB")
@@ -63,7 +68,7 @@ with open('Dependency_Generator.txt', 'w') as f:
         print("Downloading Full FDB Failed. Trying to get it by Device.")
         for device in Devices:
             FDB = FDB + libreapi.get_device_fdb(device['device_id'])
-    print("Generating FDB_count_map")
+    print("Generating FDB Port-to-MAC entry count map")
     FDB_count_map={}
     for entry in FDB:
         counter_id=str(entry['port_id'])
@@ -75,26 +80,22 @@ with open('Dependency_Generator.txt', 'w') as f:
     for device in Devices:
         Arp_entry=libreapi.list_arp(device['hostname'] if device['ip'] == "" else device['ip'])
         if len(Arp_entry) > 0:
-            parents=[]
-            for entry in FDB: #Try FDB - Look up source port of Mac Address (Devices with ports where only this Mac is being learned.)
-                if entry['mac_address'] == Arp_entry[0]['mac_address']:
-                    PID=str(entry['port_id'])
-                    if FDB_count_map[PID]['count']== 1 and str(FDB_count_map[PID]['device_id']) not in parents :
-                        parents.append(str(FDB_count_map[PID]['device_id']))
-                        
+            parents=Try_FDB(Arp_entry,FDB,FDB_count_map,1)#Try FDB - allowing 1 MAC on the source port
             parents=remove_loops(parents,device,device_dep_map) #Remove Dependency Loops
             
             if(len(parents) == 0 or len(parents) > 2): #Try ARP - if too many or too few parents are found in FDB. (Devices where they're learning the MAC address.)
-                print("ARP to the rescue! for " + device['sysName'] + "- FDB Parent count unacceptable - " + str(parents))
                 parents=[]
                 for arp_ent in Arp_entry:
-                    port_did=str(libreapi.get_port_info(arp_ent['port_id'])[0]['device_id'])
-                    if port_did not in parents:
+                    port_info=libreapi.get_port_info(arp_ent['port_id'])[0]
+                    port_did=str(port_info['device_id'])
+                    if port_info['device_id'] != device['device_id'] and 'Mgmt' not in port_info['ifName'] and port_did not in parents:
                         parents.append(port_did)
-                arp_rescue_counter=arp_rescue_counter + 1
+                parents=remove_loops(parents,device,device_dep_map) #Remove Dependency Loops
                 
-            parents=remove_loops(parents,device,device_dep_map) #Remove Dependency Loops
-            
+                if(len(parents) == 0 or len(parents) > 2): #Try FDB again - this time allowing 2 MACs on the source port (Some devices have 2 MACs)
+                    parents=Try_FDB(Arp_entry,FDB,FDB_count_map,2)
+                    parents=remove_loops(parents,device,device_dep_map) #Remove Dependency Loops
+                
             if len(parents) == 1 or len(parents) == 2: #Update found parents in Libre
                 update_Dependency(device,parents,device_dep_map)
                 success_counter=success_counter+1
@@ -107,7 +108,6 @@ with open('Dependency_Generator.txt', 'w') as f:
     print("Done!")
     print("Success: " + str(success_counter))
     print("Failed: " + str(fail_counter))
-    print("ARP Rescues: " + str(arp_rescue_counter))
     print("Missing ARPs: " + str(arp_notfound))
     sys.stdout = original_stdout
     print("Done!")
