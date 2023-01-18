@@ -22,6 +22,7 @@ class LibreNMSAPIClientException(Exception):
 
 
 class LibreNMSAPIClient:
+    cache = {}
     functions = {
 #        'example_function' : {
 #            'route': '/route/:to/function/:param',
@@ -32,12 +33,14 @@ class LibreNMSAPIClient:
         'list_functions' : {
             'route': '/api/v0/',
             'request_method': 'GET',
-            'flags': 'e'
+            'flags': 'e',
+            'cache':True
         },
         'get_alert' : {
             'route': '/api/v0/alerts/:id',
             'request_method': 'GET',
             'response_key':'alerts',
+            'cache':True
         },
         'ack_alert' : {
             'route': '/api/v0/alerts/:id',
@@ -51,11 +54,13 @@ class LibreNMSAPIClient:
             'route': '/api/v0/alerts',
             'request_method': 'GET',
             'response_key':'alerts',
+            'cache':True
         },
         'get_alert_rule' : {
             'route': '/api/v0/rules/:id',
             'request_method': 'GET',
             'response_key':'rules',
+            'cache':True
         },
         'delete_rule' : {
             'route': '/api/v0/rules/:id',
@@ -65,6 +70,7 @@ class LibreNMSAPIClient:
             'route': '/api/v0/rules',
             'request_method': 'GET',
             'response_key':'rules',
+            'cache':True,
         },
         'add_rule' : {
             'route': '/api/v0/rules',
@@ -79,6 +85,7 @@ class LibreNMSAPIClient:
             'route': '/api/v0/resources/ip/arp/:query',
             'request_method': 'GET',
             'response_key':'arp',
+            'cache':True
         },
         'list_bills' : {
             'route': '/api/v0/bills',
@@ -103,6 +110,7 @@ class LibreNMSAPIClient:
             'route': '/api/v0/bills/:id/history',
             'request_method': 'GET',
             'response_key':'bill_history',
+            'cache':True
         },
         'get_bill_history_graph' : {    #Need to look into compatibility. docs say response is graph image
             'route': '/api/v0/bills/:id/history/:bill_hist_id/graphs/:graph_type',
@@ -126,6 +134,7 @@ class LibreNMSAPIClient:
             'route': '/api/v0/devicegroups',
             'request_method': 'GET',
             'response_key':'groups',
+            'cache':True
         },
         'add_devicegroup' : {
             'route': '/api/v0/devicegroups',
@@ -135,7 +144,8 @@ class LibreNMSAPIClient:
         'get_devices_by_group' : {
             'route': '/api/v0/devicegroups/:name',
             'request_method': 'GET',
-            'response_key':'devices'
+            'response_key':'devices',
+            'cache':True
         },
         'maintenance_devicegroup' : {
             'route': '/api/v0/devicesgroups/:name/maintenance',
@@ -150,6 +160,7 @@ class LibreNMSAPIClient:
             'route': '/api/v0/devices/:hostname',
             'request_method': 'GET',
             'response_key':'devices',
+            'cache':True
         },
         'discover_device' : {
             'route': '/api/v0/devices/:hostname/discover',
@@ -159,11 +170,13 @@ class LibreNMSAPIClient:
             'route': '/api/v0/devices/:hostname/availability',
             'request_method': 'GET',
             'response_key':'availability',
+            'cache':True
         },
         'outages' : {
             'route': '/api/v0/devices/:hostname/outages',
             'request_method': 'GET',
             'response_key':'outages',
+            'cache':True
         },
         'get_graphs' : {
             'route': '/api/v0/devices/:hostname/graphs',
@@ -174,13 +187,15 @@ class LibreNMSAPIClient:
             'route': '/api/v0/devices/:hostname/health/:type/:sensor_id',
             'request_method': 'GET',
             'response_key':'graphs',
-            'flags':'o'
+            'flags':'o',
+            'cache':True
         },
         'list_available_wireless_graphs' : {
             'route': '/api/v0/devices/:hostname/wireless/:type/:sensor_id',
             'request_method': 'GET',
             'response_key':'graphs',
-            'flags':'o'
+            'flags':'o',
+            'cache':True
         },
         'get_health_graph' : { #Doesn't support yet. output is graph image
             'route': '/api/v0/devices/:hostname/graphs/health/:type/:sensor_id',
@@ -204,22 +219,26 @@ class LibreNMSAPIClient:
         'get_device_fdb' : {
             'route': '/api/v0/devices/:hostname/fdb',
             'request_method': 'GET',
-            'response_key':'ports_fdb', 
+            'response_key':'ports_fdb',
+            'cache':True
         },
         'get_device_ip_addresses' : {
             'route': '/api/v0/devices/:hostname/ip',
             'request_method': 'GET',
             'response_key':'addresses',
+            'cache':True
         },
         'get_port_stack' : {
             'route': '/api/v0/devices/:hostname/port_stack',
             'request_method': 'GET',
             'response_key':'mappings',
+            'cache':True
         },
         'get_components' : {
             'route': '/api/v0/devices/:hostname/components',
             'request_method': 'GET',
             'response_key':'components',
+            'cache':True
         },
         'add_components' : {
             'route': '/api/v0/devices/:hostname/components/:type',
@@ -237,7 +256,8 @@ class LibreNMSAPIClient:
         'get_port_stats_by_port_hostname' : {
             'route': '/api/v0/devices/:hostname/ports/:ifname',
             'request_method': 'GET',
-            'response_key':'port', 
+            'response_key':'port',
+            'cache':True
         },
         'get_graph_by_port_hostname' : {  #Need to look into compatibility. docs say response is graph image
             'route': '/api/v0/devices/:hostname/ports/:ifname/:type',
@@ -246,17 +266,20 @@ class LibreNMSAPIClient:
         'list_locations' : {
             'route': '/api/v0/resources/locations',
             'request_method': 'GET',
-            'response_key':'locations', 
+            'response_key':'locations',
+            'cache':True
         },
         'list_sensors' : {
             'route': '/api/v0/resources/sensors',
             'request_method': 'GET',
-            'response_key':'sensors', 
+            'response_key':'sensors',
+            'cache':True
         },
         'list_devices' : {
             'route': '/api/v0/devices',
             'request_method': 'GET',
-            'response_key':'devices', 
+            'response_key':'devices',
+            'cache':True
         },
         'maintenance_device' : {
             'route': '/api/v0/devices/:hostname/maintenance',
@@ -267,10 +290,11 @@ class LibreNMSAPIClient:
             'request_method': 'POST',
             'response_key':'devices', 
         },
-        'list_oxidized' : {  #Doesn't support per docs. JSON output isn't in a dictionary per docs. Workaround: json.loads(libreapi.r_list_oxidized().text)
+        'list_oxidized' : {  #Doesn't directly support. Workaround: json.loads(libreapi.r_list_oxidized().text)
             'route': '/api/v0/oxidized/:hostname',
             'request_method': 'GET',
-            'flags':'o'
+            'flags':'o',
+            'cache':True
         },
         'update_device_field' : {
             'route': '/api/v0/devices/:hostname',
@@ -287,17 +311,20 @@ class LibreNMSAPIClient:
         'get_device_groups' : {
             'route': '/api/v0/devices/:hostname/groups',
             'request_method': 'GET',
-            'response_key':'groups', 
+            'response_key':'groups',
+            'cache':True
         },
         'search_oxidized' : {
             'route': 'api/v0/oxidized/config/search/:searchstring',
             'request_method': 'GET',
-            'response_key':'nodes', 
+            'response_key':'nodes',
+            'cache':True
         },
-        'get_oxidized_config' : { #Doesn't support per docs. JSON output isn't in a dictionary per docs. Workaround: json.loads(libreapi.ri_get_oxidized_config(device['hostname']).text)
+        'get_oxidized_config' : { #Doesn't directly support. Workaround: json.loads(libreapi.ri_get_oxidized_config(device['hostname']).text)
             'route': '/api/v0/oxidized/config/:device_name',
             'request_method': 'GET',
-            'response_key':'config', 
+            'response_key':'config',
+            'cache':True
         },
         'add_parents_to_host' : {
             'route': '/api/v0/devices/:device/parents',
@@ -310,12 +337,14 @@ class LibreNMSAPIClient:
         'get_inventory' : {
             'route': '/api/v0/inventory/:hostname',
             'request_method': 'GET',
-            'response_key':'inventory', 
+            'response_key':'inventory',
+            'cache':True
         },
         'get_inventory_for_device' : {
             'route': '/api/v0/inventory/:hostname/all',
             'request_method': 'GET',
-            'response_key':'inventory', 
+            'response_key':'inventory',
+            'cache':True
         },
         'add_location' : {
             'route': '/api/v0/locations/',
@@ -328,32 +357,38 @@ class LibreNMSAPIClient:
         'list_eventlog' : {
             'route': '/api/v0/logs/eventlog/:hostname',
             'request_method': 'GET',
-            'response_key':'logs', 
+            'response_key':'logs',
+            'cache':True
         },
         'list_syslog' : {
             'route': '/api/v0/logs/syslog/:hostname',
             'request_method': 'GET',
-            'response_key':'logs', 
+            'response_key':'logs',
+            'cache':True
         },
         'list_alertlog' : {
             'route': '/api/v0/logs/alertlog/:hostname',
             'request_method': 'GET',
-            'response_key':'logs', 
+            'response_key':'logs',
+            'cache':True
         },
         'list_authlog' : {
             'route': '/api/v0/logs/authlog/:hostname',
             'request_method': 'GET',
-            'response_key':'logs', 
+            'response_key':'logs',
+            'cache':True
         },
         'get_port_groups' : {
             'route': '/api/v0/port_groups',
             'request_method': 'GET',
-            'response_key':'groups', 
+            'response_key':'groups',
+            'cache':True
         },
         'get_ports_by_group' : {
             'route': '/api/v0/port_groups/:name',
             'request_method': 'GET',
-            'response_key':'ports', 
+            'response_key':'ports',
+            'cache':True
         },
         'add_port_group' : {
             'route': '/api/v0/port_groups',
@@ -379,38 +414,45 @@ class LibreNMSAPIClient:
         'get_all_ports' : {
             'route': '/api/v0/ports',
             'request_method': 'GET',
-            'response_key':'ports', 
+            'response_key':'ports',
+            'cache':True
         },
         'search_ports' : {
             'route': '/api/v0/ports/search/:field/:search',
             'request_method': 'GET',
             'response_key':'ports',
-            'flags':'o'
+            'flags':'o',
+            'cache':True
         },
         'ports_with_associated_mac' : {
             'route': '/api/v0/ports/mac/:search',
             'request_method': 'GET',
-            'response_key':'port', 
+            'response_key':'port',
+            'cache':True
         },
         'get_port_info' : {
             'route': '/api/v0/ports/:portid',
             'request_method': 'GET',
-            'response_key':'port', 
+            'response_key':'port',
+            'cache':True
         },
         'get_port_ip_info' : {
             'route': '/api/v0/ports/:portid/ip',
             'request_method': 'GET',
-            'response_key':'addresses', 
+            'response_key':'addresses',
+            'cache':True
         },
         'list_bgp' : {
             'route': '/api/v0/bgp',
             'request_method': 'GET',
-            'response_key':'bgp_sessions', 
+            'response_key':'bgp_sessions',
+            'cache':True
         },
         'get_bgp' : {
             'route': '/api/v0/bgp/:id',
             'request_method': 'GET',
-            'response_key':'bgp_session', 
+            'response_key':'bgp_session',
+            'cache':True
         },
         'edit_bgp_descr' : {
             'route': '/api/v0/bgp/:id',
@@ -419,67 +461,80 @@ class LibreNMSAPIClient:
         'list_cbgp' : {
             'route': '/api/v0/routing/bgp/cbgp',
             'request_method': 'GET',
-            'response_key':'bgp_counters', 
+            'response_key':'bgp_counters',
+            'cache':True
         },
         'list_ip_addresses' : {
             'route': '/api/v0/resources/ip/addresses',
             'request_method': 'GET',
-            'response_key':'ip_addresses', 
+            'response_key':'ip_addresses',
+            'cache':True
         },
         'get_network_ip_addresses' : {
             'route': '/api/v0/resources/ip/networks/:id/ip',
             'request_method': 'GET',
-            'response_key':'addresses', 
+            'response_key':'addresses',
+            'cache':True
         },
         'list_ip_networks' : {
             'route': '/api/v0/resources/ip/networks',
             'request_method': 'GET',
-            'response_key':'ip_networks', 
+            'response_key':'ip_networks',
+            'cache':True
         },
         'list_ipsec' : {
             'route': '/api/v0/routing/ipsec/data/:hostname',
             'request_method': 'GET',
-            'response_key':'ipsec', 
+            'response_key':'ipsec',
+            'cache':True
         },
         'list_ospf' : {
             'route': '/api/v0/ospf',
             'request_method': 'GET',
-            'response_key':'ospf_neighbours', 
+            'response_key':'ospf_neighbours',
+            'cache':True
         },
         'list_ospf_ports' : {
             'route': '/api/v0/ospf_ports',
             'request_method': 'GET',
-            'response_key':'ospf_ports', 
+            'response_key':'ospf_ports',
+            'cache':True
         },
         'list_vrf' : {
             'route': '/api/v0/routing/vrf',
             'request_method': 'GET',
-            'response_key':'vrfs', 
+            'response_key':'vrfs',
+            'cache':True
         },
         'get_vrf' : {
             'route': '/api/v0/routing/vrf/:id',
             'request_method': 'GET',
-            'response_key':'vrf', 
+            'response_key':'vrf',
+            'cache':True
         },
         'list_mpls_services' : {
             'route': '/api/v0/routing/mpls/services',
             'request_method': 'GET',
-            'response_key':'mpls_services', 
+            'response_key':'mpls_services',
+            'cache':True
         },
         'list_mpls_saps' : {
             'route': '/api/v0/routing/mpls/saps',
             'request_method': 'GET',
-            'response_key':'saps', 
+            'response_key':'saps',
+            'cache':True
         },
         'list_services' : {
             'route': '/api/v0/services',
             'request_method': 'GET',
-            'response_key':'services', 
+            'response_key':'services',
+            'cache':True
         },
         'get_service_for_host' : {
             'route': '/api/v0/services/:hostname',
             'request_method': 'GET',
-            'response_key':'services', 
+            'response_key':'services',
+            'cache':True
         },
         'add_service_for_host' : {
             'route': '/api/v0/services/:hostname',
@@ -496,37 +551,44 @@ class LibreNMSAPIClient:
         'list_vlans' : {
             'route': '/api/v0/resources/vlans',
             'request_method': 'GET',
-            'response_key':'vlans', 
+            'response_key':'vlans',
+            'cache':True
         },
         'get_vlans' : {
             'route': '/api/v0/devices/:hostname/vlans',
             'request_method': 'GET',
-            'response_key':'vlans', 
+            'response_key':'vlans',
+            'cache':True
         },
         'list_links' : {
             'route': '/api/v0/resources/links',
             'request_method': 'GET',
-            'response_key':'links', 
+            'response_key':'links',
+            'cache':True
         },
         'get_links' : {
             'route': '/api/v0/devices/:hostname/links',
             'request_method': 'GET',
-            'response_key':'links', 
+            'response_key':'links',
+            'cache':True
         },
         'get_link' : {
             'route': '/api/v0/resources/links/:id',
             'request_method': 'GET',
-            'response_key':'links', 
+            'response_key':'links',
+            'cache':True
         },
         'list_fdb' : {
             'route': '/api/v0/resources/fdb/:mac',
             'request_method': 'GET',
-            'response_key':'ports_fdb', 
+            'response_key':'ports_fdb',
+            'cache':True
         },
         'system' : {
             'route': '/api/v0/system',
             'request_method': 'GET',
-            'response_key':'system', 
+            'response_key':'system',
+            'cache':True
         },
     }
     #Generates Query Parameters
@@ -597,21 +659,23 @@ class LibreNMSAPIClient:
             raise LibreNMSAPIClientException("API '%s' function called without required parameters." % self._function_name)
         routes=self._gen_route(self.functions[self._function_name]['route'],params) #Generate Function Route/s with parameters
         responses=[]
-        if(self.functions[self._function_name]['request_method'] == 'DELETE'):
-                        for route in routes:
-                                responses.append(requests.delete( self._libre_url + route, headers=self._header, verify = False))
-        elif(self.functions[self._function_name]['request_method'] == 'GET'):
-                        for route in routes:
-                                responses.append(requests.get( self._libre_url + route, headers=self._header, verify = False))
-        elif(self.functions[self._function_name]['request_method'] == 'PATCH'):
-                        for route in routes:
-                                responses.append(requests.patch( self._libre_url + route, headers=self._header,json=request_data, verify = False))
-        elif(self.functions[self._function_name]['request_method'] == 'POST'):
-                        for route in routes:
-                                responses.append(requests.post( self._libre_url + route, headers=self._header,json=request_data, verify = False))
-        elif(self.functions[self._function_name]['request_method'] == 'PUT'):
-                        for route in routes:
-                                responses.append(requests.put( self._libre_url + route, headers=self._header, verify = False))
+        for route in routes:
+                if('cache' in self.functions[self._function_name] and self.functions[self._function_name]['cache'] and (self.functions[self._function_name]['request_method'] + "-" + route) in self.cache) :
+                   response=self.cache[self.functions[self._function_name]['request_method'] + "-" + route]
+                else:
+                        if(self.functions[self._function_name]['request_method'] == 'DELETE'):
+                                response=requests.delete( self._libre_url + route, headers=self._header, verify = False)
+                        elif(self.functions[self._function_name]['request_method'] == 'GET'):
+                                response=requests.get( self._libre_url + route, headers=self._header, verify = False)
+                        elif(self.functions[self._function_name]['request_method'] == 'PATCH'):
+                                response=requests.patch( self._libre_url + route, headers=self._header,json=request_data, verify = False)
+                        elif(self.functions[self._function_name]['request_method'] == 'POST'):
+                                response=requests.post( self._libre_url + route, headers=self._header,json=request_data, verify = False)
+                        elif(self.functions[self._function_name]['request_method'] == 'PUT'):
+                                response=requests.put( self._libre_url + route, headers=self._header, verify = False)
+                        if 'cache' in self.functions[self._function_name] and self.functions[self._function_name]['cache']:
+                              self.cache[self.functions[self._function_name]['request_method'] + "-" + route]=response  
+                responses.append(response)
 
         call_output = []
         for response in responses:
