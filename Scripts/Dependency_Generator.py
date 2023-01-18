@@ -3,6 +3,7 @@
 
 from Libs.LibreNMSAPIClient import LibreNMSAPIClient #https://github.com/electrocret/LibreNMSAPIClient
 import sys
+from datetime import date
 
 class Dependency_Map:
     """ Dependency_Map Class creates an object for building Libre Dependency Maps"""
@@ -64,7 +65,38 @@ class Dependency_Map:
                     self.build_dependency(Device,parents,"ARP",max_allowed_parents,overwrite)
         print("Finished building Dependency Map based on ARP")
         
-
+    def try_Network_Neighbors(self,max_allowed_parents=2,overwrite=False):
+        """
+            Guesses what the parent of a device is based on what's most common among other hosts in the network have as their parent.
+        """
+        print("Building Dependency Map based on Network Neighbors")
+        for Device in self.libreapi.list_devices():
+            if not self.gen_dependency(Device,overwrite):
+                continue
+            polling_network_id = 0
+            for address in self.libreapi.i_get_device_ip_addresses(Device['device_id']):
+                if('ipv4_address' in address):
+                    if(Device['hostname'] == address['ipv4_address'] or Device['ip'] == address['ipv4_address']):
+                        polling_network_id = address['ipv4_network_id']
+                        break
+            if(polling_network_id != 0): # Check if Polling network was found
+                parents=[]
+                for address in self.libreapi.get_network_ip_addresses(polling_network_id):
+                    did=str(self.libreapi.get_port_info(address['port_id'])[0]['device_id'])
+                    if did in self.Device_Dependency_Map and self.Device_Dependency_Map[did].Source != "Network_Neighbors":
+                        parents=parents + self.Device_Dependency_Map[did].Parents
+                if len(parents) > 0:
+                    if str(Device['device_id']) in parents:
+                        while str(Device['device_id']) in parents:
+                            parents.remove(str(Device['device_id']))
+                    dedup_parents=list(dict.fromkeys(parents))
+                    while len(parents) >= max_allowed_parents:
+                        for parent in dedup_parents:
+                            if parent in parents:
+                                parents.remove(parent)
+                    self.build_dependency(Device,parents,"Network_Neighbors",max_allowed_parents,overwrite)
+        print("Finished building Dependency Map based on Network Neighbors")
+        
     def try_xDP(self,max_allowed_parents=1,overwrite=False):
         """
             Finds Dependencies based on xDP (CDP/LLDP).
@@ -143,7 +175,7 @@ class Dependency_Map:
 
         """
         for Device in self.libreapi.list_devices():
-            if Device['device_id'] in Children:
+            if str(Device['device_id']) in Children:
                 self.build_dependency(Device,parents,"static",len(parents),overwrite,len(parents))
         
     def gen_dependency(self,Device,overwrite=False):
@@ -261,7 +293,8 @@ class Dependency_Obj:
 original_stdout = sys.stdout
 print("Starting!")
 with open('Dependency_Generator.txt', 'w') as f:
-    sys.stdout = f 
+    sys.stdout = f
+    print("Executed: " + str(date.today()))
     dep_map=Dependency_Map(LibreNMSAPIClient())
     dep_map.try_FDB()
     dep_map.remove_loops()
@@ -271,11 +304,14 @@ with open('Dependency_Generator.txt', 'w') as f:
     dep_map.remove_loops()
     dep_map.try_xDP()
     dep_map.remove_loops()
+    dep_map.try_Network_Neighbors()
+    dep_map.remove_loops()
     print("Dependent Devices:" + str(dep_map.stats_dependents()))
     print("Independent Devices:" + str(dep_map.stats_independents()))
     print("FDB Dependents:" + str(dep_map.stats_dependent_source('FDB')))
     print("ARP Dependents:" + str(dep_map.stats_dependent_source('ARP')))
     print("xDP Dependents:" + str(dep_map.stats_dependent_source('xDP')))
+    print("Network Neightbor Dependents:" + str(dep_map.stats_dependent_source('Network_Neighbors')))
     print("Loops prevented:" + str(dep_map.stats_loops_prevented()))
     dep_map.update_libre()
     sys.stdout = original_stdout
