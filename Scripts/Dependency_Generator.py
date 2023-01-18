@@ -92,7 +92,7 @@ class Dependency_Map:
                     dedup_parents=list(dict.fromkeys(parents))
                     while len(parents) >= max_allowed_parents:
                         for parent in dedup_parents:
-                            if parent in parents:
+                            if parent in parents and len(parents) >= max_allowed_parents:
                                 parents.remove(parent)
                     self.build_dependency(Device,parents,"Network_Neighbors",max_allowed_parents,overwrite)
         print("Finished building Dependency Map based on Network Neighbors")
