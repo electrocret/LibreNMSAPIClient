@@ -5,31 +5,42 @@ from Libs.LibreNMSAPIClient import LibreNMSAPIClient #https://github.com/electro
 import sys
 
 class Dependency_Map:
-
+    """ Dependency_Map Class creates an object for building Libre Dependency Maps"""
     def child_count(self):
+        """returns dict of Counts of the direct children of each device. {'device_id':count} """
         children_count={}
-        for did,parent_obj in self.Device_Dependency_Map.items():
-            for parent in parent_obj.Parents:
+        for did,Dependency_Obj in self.Device_Dependency_Map.items():
+            for parent in Dependency_Obj.Parents:
                 children_count[parent]=1 if parent not in children_count else children_count[parent] + 1
         return children_count
     
     def remove_loops(self):
+        """Searches through Dependency Map looking for loops. Currently only looks at direct parent/child relationships and doesn't look at grandchildren"""
         print("Searching for Dependency Loops")
         children_count=self.child_count()
-        for child,parent_obj in self.Device_Dependency_Map.items():
-            grandparents=parent_obj.grandparents(0)
+        for child,Dependency_Obj in self.Device_Dependency_Map.items():
+            grandparents=Dependency_Obj.grandparents(0)
             if child in grandparents: #High level check for loop
                 for grandparent in grandparents:
                     if(grandparent in self.Device_Dependency_Map and child in self.Device_Dependency_Map[grandparent].Parents): #Find Loop source
                         print("Loop found between " + child + " and " + grandparent + " (" + str(children_count[child]) + ">" + str(children_count[grandparent]) + ")")
                         self.loops_prevented=self.loops_prevented + 1
-                        if child != grandparent and children_count[child] > children_count[grandparent] or grandparent in parent_obj.Parents: #Determine who's the parent based on child count, then remove child.
+                        if child != grandparent and children_count[child] > children_count[grandparent] or grandparent in Dependency_Obj.Parents: #Determine who's the parent based on child count, then remove child.
                             self.Device_Dependency_Map[grandparent].Parents.remove(child)
                         else:
-                            parent_obj.Parents.remove(grandparent)
+                            Dependency_Obj.Parents.remove(grandparent)
         print("Finished searching for Dependency Loops")
 
     def try_ARP(self,exclude_monitoring_ports=True,max_allowed_parents=2,overwrite=False):
+        """
+            Finds Dependencies based on ARP.
+
+            Parameters:
+             exclude_monitoring_ports - Boolean - Whether to exclude ports that Libre is monitoring against for parental consideration.
+             max_allowed_parents - int - Maximum number of parents allowed. If exceeded then no valid parent is considered found. (2 is generaly a good number. For HSRP/VRRP Gateways)
+             overwrite - boolean - Whether to overwrite existing Dependency Map mappings that may have been found by previous functions.
+
+        """
         Monitored_IPs=[]
         for device in self.libreapi.list_devices():
             Monitored_IPs.append(device['hostname'] if device['ip'] == "" else device['ip'])
@@ -50,10 +61,21 @@ class Dependency_Map:
                     port_did=str(port_info['device_id'])
                     if port_info['device_id'] != device['device_id']  and port_did not in parents:
                         parents.append(port_did)
-            self.build_dependency(Device,parents,"ARP",max_allowed_parents,overwrite)
+                    self.build_dependency(Device,parents,"ARP",max_allowed_parents,overwrite)
         print("Finished building Dependency Map based on ARP")
+        
 
     def try_xDP(self,max_allowed_parents=1,overwrite=False):
+        """
+            Finds Dependencies based on xDP (CDP/LLDP).
+
+            Parameters:
+             max_allowed_parents - int - Maximum number of parents allowed. If exceeded then no valid parent is considered found.
+             overwrite - boolean - Whether to overwrite existing Dependency Map mappings that may have been found by previous functions.
+
+             Note: From my experience, this method isn't very reliable since the Libre's Discovery module needs some TLC.
+
+        """
         print("Building Dependency Map based on xDP")
         for Device in self.libreapi.list_devices():
             if not self.gen_dependency(Device,overwrite):
@@ -69,10 +91,19 @@ class Dependency_Map:
                 for link in self.libreapi.i_get_links(Device['device_id']): #Find xDP neighbors of polling port
                     if(link['local_port_id'] == polling_port_id and link['remote_device_id'] not in parents and link['remote_device_id'] != 0):
                          parents.append(link['remote_device_id'])
-            self.build_dependency(Device,parents,"xDP",max_allowed_parents,overwrite)
-        print("Finished building Dependency Map based on xDP")    
-
+                self.build_dependency(Device,parents,"xDP",max_allowed_parents,overwrite)
+        print("Finished building Dependency Map based on xDP")
+        
     def try_FDB(self,allowed_mac_count=1,max_allowed_parents=2,overwrite=False):
+        """
+            Finds Dependencies based on FDB.
+
+            Parameters:
+             allowed_mac_count - int - Number of MACs that can be discovered on a port for it to be considered a source port. (Libre's algorithm uses 1, however some devices have multiple MACs)
+             max_allowed_parents - int - Maximum number of parents allowed. If exceeded then no valid parent is considered found.
+             overwrite - boolean - Whether to overwrite existing Dependency Map mappings that may have been found by previous functions.
+
+        """
         print("Downloading FDB")
         FDB=self.libreapi.oi_list_fdb()
         if len(FDB) == 0 :
@@ -98,45 +129,103 @@ class Dependency_Map:
                         PID=str(entry['port_id'])
                         if FDB_count_map[PID]['count']<= allowed_mac_count and str(FDB_count_map[PID]['device_id']) not in parents and FDB_count_map[PID]['device_id'] != Device['device_id'] :
                             parents.append(str(FDB_count_map[PID]['device_id']))
-            self.build_dependency(Device,parents,"FDB",max_allowed_parents,overwrite)
+                self.build_dependency(Device,parents,"FDB",max_allowed_parents,overwrite)
         print("Finished building Dependency Map based on FDB")
 
+    def set_dependency(self,Children,parents,overwrite=False):
+        """
+            Staticly sets dependency
+
+            Parameters:
+             Children - List - List of Device IDs to set Parent for
+             Parents - List - List of Parent Device IDs
+             overwrite - boolean - Whether to overwrite existing Dependency Map mappings that may have been found by previous functions.
+
+        """
+        for Device in self.libreapi.list_devices():
+            if Device['device_id'] in Children:
+                self.build_dependency(Device,parents,"static",len(parents),overwrite,len(parents))
+        
     def gen_dependency(self,Device,overwrite=False):
+        """
+            Tells try functions whether they should try to generate a dependency.
+            Based on whether a dependency already exists for the Device in the Device_Dependency_Map
+
+            Parameters:
+                Device - Dict - Device Dictionary from Libre
+                overwrite - boolean - Overwrite variable given to "try_" functions
+        """
         return overwrite or str(Device['device_id']) not in self.Device_Dependency_Map or ( str(Device['device_id']) in self.Device_Dependency_Map and len(self.Device_Dependency_Map[str(Device['device_id'])].Parents) == 0)
-    def build_dependency(self, Device, parents, Source,max_allowed_parents,overwrite=False):
-        if len(parents) <= max_allowed_parents and len(parents) != 0 and self.gen_dependency(Device,overwrite) :
-            print(Parent_Obj(self,Device,parents,Source))
+
+
+    def build_dependency(self, Device, parents, Source,max_allowed_parents,overwrite=False,min_parents=1):
+        """
+            Builds dependency Dependency_Obj.
+
+            Parameters:
+                Device - Dict - Device Dictionary from Libre
+                Source - Str - Name for source function. (used internally for stats & diagnostics)
+                max_allowed_parents - int - Maximum number of parents allowed. If exceeded then no valid parent is considered found.
+                overwrite - boolean - Whether to overwrite existing Dependency Map mappings that may have been found by previous functions.
+                min_parents - int - Minimum number of parents allowed.
+        """
+        if len(parents) <= max_allowed_parents and len(parents) >= min_parents and self.gen_dependency(Device,overwrite) :
+            print(Dependency_Obj(self,Device,parents,Source))
     
-    def stats_dependent_source(self,dsource):
+    def stats_dependent_source(self,dSource):
+        """
+            Returns an int count of how many dependencies were found from this source.
+            Parameters:
+                dSource - Str - String each source identifies by ie. ARP,FDB,xDP
+        """
         count=0
-        for did,parent_obj in self.Device_Dependency_Map.items():
-            if parent_obj.Source == dsource:
+        for did,Dependency_Obj in self.Device_Dependency_Map.items():
+            if Dependency_Obj.Source == dSource:
                 count=count + 1
         return count
     
     def stats_dependents(self):
+        """
+            Returns an int count of how many dependencies are in the map.
+        """
         return len(self.Device_Dependency_Map)
     
     def stats_independents(self):
+        """
+            Returns an int count of how many dependencies aren't in the map.
+        """
         return len(self.libreapi.list_devices()) - len(self.Device_Dependency_Map)
     
     def stats_loops_prevented(self):
+        """
+            Returns an int count of how many loops were found & prevented using the remove_loops function.
+        """
         return self.loops_prevented
     
     def update_libre(self,force=False):
+        """
+            Updates Libre's dependency map with Dependency_Map Object's Map.
+            Parameters:
+                force - boolean - Forces update to Libre even if the Dependency_Obj has no parents. (When false - if Dependency_Obj has no Parent in it then it will be skipped)
+        """
         print("Updating Libre Dependency Map")
-        for did,parent_obj in self.Device_Dependency_Map.items():
-            parent_obj.update_libre(force)
+        for did,Dependency_Obj in self.Device_Dependency_Map.items():
+            Dependency_Obj.update_libre(force)
         print("Finished updating Libre Dependency Map")
 
     def __init__(self,libreapi):
-        self.Device_Dependency_Map={} # {<did>:Parent_Obj}}
+        self.Device_Dependency_Map={} # {<did>:Dependency_Obj}}
         self.libreapi=libreapi
         self.loops_prevented=0
 
 
-class Parent_Obj:
+class Dependency_Obj:
     def grandparents(self,depth=0):
+        """
+            Returns a list of this Dependency_Obj's Parent device IDs
+            Parameters:
+                depth - int - How many generations to go back
+        """
         grandparents=[]
         for parent in self.Parents:
             if parent in self.DMap.Device_Dependency_Map:
@@ -144,8 +233,13 @@ class Parent_Obj:
                 if depth > 0:
                    grandparents = grandparents + self.DMap.Device_Dependency_Map[parent].grandparents(depth - 1)
         return list(dict.fromkeys(grandparents))
-    
+
     def update_libre(self,force=False):
+        """
+            Updates Libre's dependency map with this Dependency_Obj.
+            Parameters:
+                force - boolean - Forces update to Libre even if the Dependency_Obj has no parents. (When false - if Dependency_Obj has no Parent in it then it will be skipped)
+        """
         if len(self.Parents) > 0 or force:
             self.DMap.libreapi.i_delete_parents_from_host(self.Device_ID) #Clear existing parent
             if len(self.Parents) > 0:
