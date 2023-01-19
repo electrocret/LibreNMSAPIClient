@@ -1,6 +1,5 @@
 #This script builds a Dependency Map in Libre
 
-
 from Libs.LibreNMSAPIClient import LibreNMSAPIClient #https://github.com/electrocret/LibreNMSAPIClient
 import sys
 from datetime import date
@@ -24,7 +23,7 @@ class Dependency_Map:
             if child in grandparents: #High level check for loop
                 for grandparent in grandparents:
                     if(grandparent in self.Device_Dependency_Map and child in self.Device_Dependency_Map[grandparent].Parents): #Find Loop source
-                        print("Loop found between " + child + " and " + grandparent + " (" + str(children_count[child]) + ">" + str(children_count[grandparent]) + ")")
+                        print("Loop found between " + child + " and " + grandparent + " (Child Tiebreaker:" + str(children_count[child]) + ">" + str(children_count[grandparent]) + ")")
                         self.loops_prevented=self.loops_prevented + 1
                         if child != grandparent and children_count[child] > children_count[grandparent] or grandparent in Dependency_Obj.Parents: #Determine who's the parent based on child count, then remove child.
                             self.Device_Dependency_Map[grandparent].Parents.remove(child)
@@ -60,14 +59,18 @@ class Dependency_Map:
                 if not monitoring_port:
                     port_info=self.libreapi.get_port_info(arp_ent['port_id'])[0]
                     port_did=str(port_info['device_id'])
-                    if port_info['device_id'] != device['device_id']  and port_did not in parents:
+                    if port_info['device_id'] != Device['device_id'] and port_did not in parents:
                         parents.append(port_did)
-                    self.build_dependency(Device,parents,"ARP",max_allowed_parents,overwrite)
+            self.build_dependency(Device,parents,"ARP",max_allowed_parents,overwrite)
         print("Finished building Dependency Map based on ARP")
         
     def try_Network_Neighbors(self,max_allowed_parents=2,overwrite=False):
         """
-            Guesses what the parent of a device is based on what's most common among other hosts in the network have as their parent.
+            Makes educated guess as to what the parent of a device is based on what's most common parent among other hosts in the network.
+            
+            Parameters:
+             max_allowed_parents - int - Maximum number of parents function will set
+             overwrite - boolean - Whether to overwrite existing Dependency Map mappings that may have been found by previous functions.
         """
         print("Building Dependency Map based on Network Neighbors")
         for Device in self.libreapi.list_devices():
@@ -90,9 +93,9 @@ class Dependency_Map:
                         while str(Device['device_id']) in parents:
                             parents.remove(str(Device['device_id']))
                     dedup_parents=list(dict.fromkeys(parents))
-                    while len(parents) >= max_allowed_parents:
+                    while len(parents) > max_allowed_parents:
                         for parent in dedup_parents:
-                            if parent in parents and len(parents) >= max_allowed_parents:
+                            if parent in parents and len(parents) > max_allowed_parents:
                                 parents.remove(parent)
                     self.build_dependency(Device,parents,"Network_Neighbors",max_allowed_parents,overwrite)
         print("Finished building Dependency Map based on Network Neighbors")
@@ -290,22 +293,25 @@ class Dependency_Obj:
 
 
 
+
+### Script Start ###
+    
 original_stdout = sys.stdout
 print("Starting!")
 with open('Dependency_Generator.txt', 'w') as f:
     sys.stdout = f
     print("Executed: " + str(date.today()))
     dep_map=Dependency_Map(LibreNMSAPIClient())
-    dep_map.try_FDB()
+    dep_map.try_FDB() #Try to find endpoint switchport of Device. (Uses similar algorithm to Libre's FDB)
+    dep_map.try_FDB(2) #Try to find endpoint switchport of Device. (Uses similar algorithm to Libre's FDB except with the allowance of 2 MAC's sourced from port. For compatibility with some devices.)
     dep_map.remove_loops()
-    dep_map.try_ARP()
+    dep_map.try_xDP() #Try to find endpoint switchport using xDP.
     dep_map.remove_loops()
-    dep_map.try_FDB(2)
+    dep_map.try_ARP() #Try to find Device's GW using ARP.
     dep_map.remove_loops()
-    dep_map.try_xDP()
+    dep_map.try_Network_Neighbors() #Make Educated guess based on peers in Device's network.
     dep_map.remove_loops()
-    dep_map.try_Network_Neighbors()
-    dep_map.remove_loops()
+    print("##Dependency Generator Stats##")
     print("Dependent Devices:" + str(dep_map.stats_dependents()))
     print("Independent Devices:" + str(dep_map.stats_independents()))
     print("FDB Dependents:" + str(dep_map.stats_dependent_source('FDB')))
@@ -313,6 +319,6 @@ with open('Dependency_Generator.txt', 'w') as f:
     print("xDP Dependents:" + str(dep_map.stats_dependent_source('xDP')))
     print("Network Neightbor Dependents:" + str(dep_map.stats_dependent_source('Network_Neighbors')))
     print("Loops prevented:" + str(dep_map.stats_loops_prevented()))
-    dep_map.update_libre()
+    dep_map.update_libre() #Update Dependency Map in Libre
     sys.stdout = original_stdout
     print("Done!")
