@@ -1,4 +1,5 @@
-#This script builds a Dependency Map in Libre
+#This script builds a Dependency Map in Libre utilizing FDB,xDP, and ARP.
+
 
 from Libs.LibreNMSAPIClient import LibreNMSAPIClient #https://github.com/electrocret/LibreNMSAPIClient
 import sys
@@ -255,6 +256,7 @@ class Dependency_Map:
 
 
 class Dependency_Obj:
+    """ Device Dependency info container. """
     def grandparents(self,depth=0):
         """
             Returns a list of this Dependency_Obj's Parent device IDs
@@ -315,8 +317,8 @@ with open('Dependency_Generator.txt', 'w') as f:
     print("Dependent Devices:" + str(dep_map.stats_dependents()))
     print("Independent Devices:" + str(dep_map.stats_independents()))
     print("FDB Dependents:" + str(dep_map.stats_dependent_source('FDB')))
-    print("ARP Dependents:" + str(dep_map.stats_dependent_source('ARP')))
     print("xDP Dependents:" + str(dep_map.stats_dependent_source('xDP')))
+    print("ARP Dependents:" + str(dep_map.stats_dependent_source('ARP')))
     print("Network Neightbor Dependents:" + str(dep_map.stats_dependent_source('Network_Neighbors')))
     print("Loops prevented:" + str(dep_map.stats_loops_prevented()))
     dep_map.update_libre() #Update Dependency Map in Libre
