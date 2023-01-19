@@ -307,9 +307,9 @@ with open('Dependency_Generator.txt', 'w') as f:
     dep_map.try_FDB() #Try to find endpoint switchport of Device. (Uses similar algorithm to Libre's FDB)
     dep_map.try_FDB(2) #Try to find endpoint switchport of Device. (Uses similar algorithm to Libre's FDB except with the allowance of 2 MAC's sourced from port. For compatibility with some devices.)
     dep_map.remove_loops()
-    dep_map.try_xDP() #Try to find endpoint switchport using xDP.
-    dep_map.remove_loops()
     dep_map.try_ARP() #Try to find Device's GW using ARP.
+    dep_map.remove_loops()
+    dep_map.try_xDP() #Try to find endpoint switchport using xDP. (xDP info is often buggy)
     dep_map.remove_loops()
     dep_map.try_Network_Neighbors() #Make Educated guess based on peers in Device's network.
     dep_map.remove_loops()
