@@ -8,12 +8,14 @@ import re
 
 ##
 ##Function Flags:  
-## i-ignore response error.
-## l-return response in list even if there's only one response/request
+## i-ignore response error. Drops response from return.
+## l-return responses in list even if there's only one response/request. (For iterated Parameters)
 ## e-entire response. Returns entire JSON object response
 ## r-raw response object that was received from requests. Skips all JSON conversion and most validation.
 ## c-combines all of the API responses into a single list instead of a separate list for each response.
 ## o-optional - makes all parameters optional.
+## s-single response object. For functions that return a single object as their response.
+## f-force JSON response through - skips JSON checks
 ##
 
 class LibreNMSAPIClientException(Exception):
@@ -40,7 +42,8 @@ class LibreNMSAPIClient:
             'route': '/api/v0/alerts/:id',
             'request_method': 'GET',
             'response_key':'alerts',
-            'cache':True
+            'cache':True,
+            'flags':'s',
         },
         'ack_alert' : {
             'route': '/api/v0/alerts/:id',
@@ -60,7 +63,8 @@ class LibreNMSAPIClient:
             'route': '/api/v0/rules/:id',
             'request_method': 'GET',
             'response_key':'rules',
-            'cache':True
+            'cache':True,
+            'flags':'s',
         },
         'delete_rule' : {
             'route': '/api/v0/rules/:id',
@@ -155,16 +159,19 @@ class LibreNMSAPIClient:
             'route': '/api/v0/devices/:hostname',
             'request_method': 'DELETE',
             'response_key':'devices',
+            'flags':'s',
         },
         'get_device' : {
             'route': '/api/v0/devices/:hostname',
             'request_method': 'GET',
             'response_key':'devices',
+            'flags':'s',
             'cache':True
         },
         'discover_device' : {
             'route': '/api/v0/devices/:hostname/discover',
             'request_method': 'GET',
+            
         },
         'availability' : {
             'route': '/api/v0/devices/:hostname/availability',
@@ -290,10 +297,10 @@ class LibreNMSAPIClient:
             'request_method': 'POST',
             'response_key':'devices', 
         },
-        'list_oxidized' : {  #Doesn't directly support. Workaround: json.loads(libreapi.r_list_oxidized().text)
+        'list_oxidized' : {
             'route': '/api/v0/oxidized/:hostname',
             'request_method': 'GET',
-            'flags':'o',
+            'flags':'feo',
             'cache':True
         },
         'update_device_field' : {
@@ -320,10 +327,11 @@ class LibreNMSAPIClient:
             'response_key':'nodes',
             'cache':True
         },
-        'get_oxidized_config' : { #Doesn't directly support. Workaround: json.loads(libreapi.ri_get_oxidized_config(device['hostname']).text)
+        'get_oxidized_config' : { 
             'route': '/api/v0/oxidized/config/:device_name',
             'request_method': 'GET',
             'response_key':'config',
+            'flags':'f',
             'cache':True
         },
         'add_parents_to_host' : {
@@ -434,6 +442,7 @@ class LibreNMSAPIClient:
             'route': '/api/v0/ports/:portid',
             'request_method': 'GET',
             'response_key':'port',
+            'flags':'s',
             'cache':True
         },
         'get_port_ip_info' : {
@@ -613,7 +622,7 @@ class LibreNMSAPIClient:
                         output= output + nest_output
                 else:
                         raise LibreNMSAPIClientException("API received unsupported parameter value: %s " % param)
-        return output,first_qparam       
+        return output,first_qparam
     #Generates Route using parameters
     def _gen_route(self,route,params):
         if len(params) == 0:
@@ -687,14 +696,15 @@ class LibreNMSAPIClient:
                         call_output.append(response)
                 else:
                         response_edata=json.loads(response.text) #Convert response to JSON object
-                        if 'status' not in response_edata:
-                                if 'i' in self._flags : #if ignore error flag is enabled
-                                    continue
-                                raise LibreNMSAPIClientException("API received invalid JSON response. %s" % response.text)
-                        if response_edata['status'] != "ok":
-                                if 'i' in self._flags : #if ignore error flag is enabled
-                                    continue
-                                raise LibreNMSAPIClientException("API received error response. %s" % response.text)
+                        if 'f' not in self._flags:
+                                if 'status' not in response_edata:
+                                        if 'i' in self._flags : #if ignore error flag is enabled
+                                            continue
+                                        raise LibreNMSAPIClientException("API received invalid JSON response. %s" % response.text)
+                                if response_edata['status'] != "ok":
+                                        if 'i' in self._flags : #if ignore error flag is enabled
+                                            continue
+                                        raise LibreNMSAPIClientException("API received error response. %s" % response.text)
                         if 'e' in self._flags:
                                 call_output.append(response_edata)
                         else:
@@ -702,13 +712,13 @@ class LibreNMSAPIClient:
                                        if 'c'in self._flags:
                                                call_output = call_output + response_edata[self.functions[self._function_name]['response_key']]
                                        else:
-                                               call_output.append(response_edata[self.functions[self._function_name]['response_key']])
+                                               call_output.append(response_edata[self.functions[self._function_name]['response_key']][0] if "s" in self._flags else response_edata[self.functions[self._function_name]['response_key']])
                                elif 'message' in response_edata:
                                       call_output.append(response_edata['message'])
                                else:
                                      call_output.append(response_edata['status'])  
 
-        if 'l' not in self._flags and len(call_output) == 1 :
+        if "l" not in self._flags and len(call_output) == 1 :
                 call_output=call_output[0]
                 
         self._flags=''
