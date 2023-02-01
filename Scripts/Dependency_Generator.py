@@ -16,20 +16,18 @@ class Dependency_Map:
         return children_count
     
     def remove_loops(self):
-        """Searches through Dependency Map looking for loops. Currently only looks at direct parent/child relationships and doesn't look at grandchildren"""
+        """Searches through Dependency Map looking for loops. Currently only looks at direct parent/child relationships and doesn't look at grandchildren etc"""
         print("Searching for Dependency Loops")
         children_count=self.child_count()
         for child,Dependency_Obj in self.Device_Dependency_Map.items():
-            grandparents=Dependency_Obj.grandparents(0)
-            if child in grandparents: #High level check for loop
-                for grandparent in grandparents:
-                    if(grandparent in self.Device_Dependency_Map and child in self.Device_Dependency_Map[grandparent].Parents): #Find Loop source
-                        print("Loop found between " + child + " and " + grandparent + " (Child Tiebreaker:" + str(children_count[child]) + ">" + str(children_count[grandparent]) + ")")
-                        self.loops_prevented=self.loops_prevented + 1
-                        if child != grandparent and children_count[child] > children_count[grandparent] or grandparent in Dependency_Obj.Parents: #Determine who's the parent based on child count, then remove child.
-                            self.Device_Dependency_Map[grandparent].Parents.remove(child)
-                        else:
-                            Dependency_Obj.Parents.remove(grandparent)
+            for parent in Dependency_Obj.Parents:
+                if(parent in self.Device_Dependency_Map and child in self.Device_Dependency_Map[parent].Parents): #Find Loop source
+                    print("Loop found between " + child + " and " + parent + " (Child Tiebreaker:" + str(children_count[child]) + ">" + str(children_count[parent]) + ")")
+                    self.loops_prevented=self.loops_prevented + 1
+                    if children_count[child] > children_count[parent]: #Determine who's the parent based on child count, then remove child.
+                        self.Device_Dependency_Map[parent].Parents.remove(child)
+                    else:
+                        Dependency_Obj.Parents.remove(parent)
         print("Finished searching for Dependency Loops")
 
     def try_ARP(self,exclude_monitoring_ports=True,max_allowed_parents=2,overwrite=False):
@@ -58,14 +56,14 @@ class Dependency_Map:
                             monitoring_port=True
                             break
                 if not monitoring_port:
-                    port_info=self.libreapi.get_port_info(arp_ent['port_id'])[0]
+                    port_info=self.libreapi.get_port_info(arp_ent['port_id'])
                     port_did=str(port_info['device_id'])
                     if port_info['device_id'] != Device['device_id'] and port_did not in parents:
                         parents.append(port_did)
             self.build_dependency(Device,parents,"ARP",max_allowed_parents,overwrite)
         print("Finished building Dependency Map based on ARP")
         
-    def try_Network_Neighbors(self,max_allowed_parents=2,overwrite=False):
+    def try_Network_Neighbors(self,max_allowed_parents=1,overwrite=False):
         """
             Makes educated guess as to what the parent of a device is based on what's most common parent among other hosts in the network.
             
@@ -86,7 +84,7 @@ class Dependency_Map:
             if(polling_network_id != 0): # Check if Polling network was found
                 parents=[]
                 for address in self.libreapi.get_network_ip_addresses(polling_network_id):
-                    did=str(self.libreapi.get_port_info(address['port_id'])[0]['device_id'])
+                    did=str(self.libreapi.get_port_info(address['port_id'])['device_id'])
                     if did in self.Device_Dependency_Map and self.Device_Dependency_Map[did].Source != "Network_Neighbors":
                         parents=parents + self.Device_Dependency_Map[did].Parents
                 if len(parents) > 0:
@@ -309,7 +307,7 @@ with open('Dependency_Generator.txt', 'w') as f:
     dep_map.remove_loops()
     dep_map.try_ARP() #Try to find Device's GW using ARP.
     dep_map.remove_loops()
-    dep_map.try_xDP() #Try to find endpoint switchport using xDP. (xDP info is often buggy)
+    dep_map.try_xDP() #Try to find endpoint switchport using xDP. (xDP info is unreliable and buggy)
     dep_map.remove_loops()
     dep_map.try_Network_Neighbors() #Make Educated guess based on peers in Device's network.
     dep_map.remove_loops()
