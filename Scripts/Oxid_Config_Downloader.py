@@ -21,3 +21,5 @@ for dev in libreapi.list_oxidized():
         f=open(output_dir + device_hostname_sysname[dev['hostname']] + ".txt","w")
         f.write(dev_config)
         f.close()
+
+print("Done Downloading Configs!")
