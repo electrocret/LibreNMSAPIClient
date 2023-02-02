@@ -17,7 +17,7 @@ for device in libreapi.list_devices():
 
 for dev in libreapi.list_oxidized(): 
     dev_config=libreapi.i_get_oxidized_config(dev['hostname']) #Get Config from Oxidized
-    if(len(dev_config)!=0 and dev_config != "node not found"): #Verify Valid Config
-        f=open(output_dir + device_hostname_sysname[dev['hostname']] + ".cfg","w")
+    if(len(dev_config) != 0 and dev_config != "node not found"): #Verify Valid Config
+        f=open(output_dir + device_hostname_sysname[dev['hostname']] + ".txt","w")
         f.write(dev_config)
         f.close()
