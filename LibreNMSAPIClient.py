@@ -100,6 +100,7 @@ class LibreNMSAPIClient:
             'route': '/api/v0/bills/:id',
             'request_method': 'GET',
             'response_key':'bills',
+            'flags':'o',
         },
         'get_bill_graph' : {    #Need to look into compatibility. docs say response is graph image
             'route': '/api/v0/bills/:id/graphs/:graph_type',
@@ -604,6 +605,8 @@ class LibreNMSAPIClient:
     def _gen_qparams(self,qparams,first_qparam=True,param_value=False):
         output=''
         for qparam in qparams:
+                if type(qparam) == int:
+                        qparam=str(qparam)
                 if type(qparam) == str:
                         if qparam == "":
                                 continue
@@ -621,7 +624,7 @@ class LibreNMSAPIClient:
                         nest_output,first_qparam=self._gen_qparams(qparam,first_qparam,param_value)
                         output= output + nest_output
                 else:
-                        raise LibreNMSAPIClientException("API received unsupported parameter value: %s " % param)
+                        raise LibreNMSAPIClientException("API received unsupported parameter value: %s " % qparam)
         return output,first_qparam
     #Generates Route using parameters
     def _gen_route(self,route,params):
