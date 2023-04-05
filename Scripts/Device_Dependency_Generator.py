@@ -144,6 +144,9 @@ class Dependency_Map:
             print("Downloading Full FDB Failed. Trying to get it by Device.")
             for device in self.libreapi.list_devices():
                 FDB = FDB + self.libreapi.get_device_fdb(device['device_id'])
+        PhysAddresses=[]
+        for phys in self.libreapi.get_all_ports('columns','ifPhysAddress'):
+            PhysAddresses.append(phys['ifPhysAddress'])
         FDB_count_map={}
         for entry in FDB:
             counter_id=str(entry['port_id'])
@@ -156,7 +159,7 @@ class Dependency_Map:
             if not self.gen_dependency(Device,overwrite):
                 continue
             Arp_Entries=self.libreapi.i_list_arp(Device['hostname'] if Device['ip'] == "" else Device['ip'])
-            if len(Arp_Entries) > 0:
+            if len(Arp_Entries) > 0 and PhysAddresses.count(Arp_Entries[0]['mac_address']) == 1:
                 parents=[]
                 for entry in FDB: #Try FDB - Look up source port of Mac Address (Devices with ports where only this Mac is being learned.)
                     if entry['mac_address'] == Arp_Entries[0]['mac_address']:
@@ -315,10 +318,10 @@ with open('Dependency_Generator.txt', 'w') as f:
     print("Dependent Devices:" + str(dep_map.stats_dependents()))
     print("Independent Devices:" + str(dep_map.stats_independents()))
     print("FDB Dependents:" + str(dep_map.stats_dependent_source('FDB')))
-    print("xDP Dependents:" + str(dep_map.stats_dependent_source('xDP')))
     print("ARP Dependents:" + str(dep_map.stats_dependent_source('ARP')))
+    print("xDP Dependents:" + str(dep_map.stats_dependent_source('xDP')))
     print("Network Neightbor Dependents:" + str(dep_map.stats_dependent_source('Network_Neighbors')))
     print("Loops prevented:" + str(dep_map.stats_loops_prevented()))
     dep_map.update_libre() #Update Dependency Map in Libre
     sys.stdout = original_stdout
-    print("Done!")
+    print("Dependency Done!")
