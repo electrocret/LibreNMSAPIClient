@@ -7,7 +7,7 @@ To begin import the API Client and create an instance of the LibreNMSAPIClient c
 
 Once you have your API Client instance, you can begin calling Libre API functions directly as they appear in the Libre documentation. 
 
-The parameter order is: dataobject (if function requires one), then the route parameters in the order that they're in the route then any additional Query parameters.
+The parameter order is: dataobject (if function requires one), then the route parameters in the order that they're in the route then any additional Query parameters. Checkout the Scripts folder for more examples.
 
 ``` python
 from LibreNMSAPIClient import LibreNMSAPIClient
