@@ -662,7 +662,7 @@ class LibreNMSAPIClient:
     def _apicall(self, *t_params):
         params=list(t_params)
         params.reverse()
-        if self.functions[self._function_name]['request_method'] in ['POST','PATCH']: #Retrieve request data for request_methods that need input data.
+        if self.functions[self._function_name]['request_method'] in ['POST','PATCH','PUT']: #Retrieve request data for request_methods that need input data.
             if not params:
                 raise LibreNMSAPIClientException("API '%s' function called without required request data." % self._function_name)
             request_data = params.pop()
@@ -684,7 +684,7 @@ class LibreNMSAPIClient:
                         elif(self.functions[self._function_name]['request_method'] == 'POST'):
                                 response=requests.post( self._libre_url + route, headers=self._header,json=request_data, verify = False)
                         elif(self.functions[self._function_name]['request_method'] == 'PUT'):
-                                response=requests.put( self._libre_url + route, headers=self._header, verify = False)
+                                response=requests.put( self._libre_url + route, headers=self._header,json=request_data, verify = False)
                         if 'cache' in self.functions[self._function_name] and self.functions[self._function_name]['cache']:
                               self.cache[self.functions[self._function_name]['request_method'] + "-" + route]=response  
                 responses.append(response)
