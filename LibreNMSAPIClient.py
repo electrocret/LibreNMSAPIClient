@@ -205,12 +205,12 @@ class LibreNMSAPIClient:
             'flags':'o',
             'cache':True
         },
-        'get_health_graph' : { #Doesn't support yet. output is graph image
+        'get_health_graph' : { #Doesn't support. output is graph image
             'route': '/api/v0/devices/:hostname/graphs/health/:type/:sensor_id',
             'request_method': 'GET',
             'flags':'o'
         },
-        'get_wireless_graph' : { #Doesn't support yet. output is graph image
+        'get_wireless_graph' : { #Doesn't support. output is graph image
             'route': '/api/v0/devices/:hostname/graphs/wireless/:type/:sensor_id',
             'request_method': 'GET',
             'flags':'o'
@@ -676,15 +676,15 @@ class LibreNMSAPIClient:
                    response=self.cache[self.functions[self._function_name]['request_method'] + "-" + route]
                 else:
                         if(self.functions[self._function_name]['request_method'] == 'DELETE'):
-                                response=requests.delete( self._libre_url + route, headers=self._header, verify = False)
+                                response=requests.delete( self._libre_url + route, headers=self._header, verify = False,stream=False)
                         elif(self.functions[self._function_name]['request_method'] == 'GET'):
-                                response=requests.get( self._libre_url + route, headers=self._header, verify = False)
+                                response=requests.get( self._libre_url + route, headers=self._header, verify = False,stream=False)
                         elif(self.functions[self._function_name]['request_method'] == 'PATCH'):
-                                response=requests.patch( self._libre_url + route, headers=self._header,json=request_data, verify = False)
+                                response=requests.patch( self._libre_url + route, headers=self._header,json=request_data, verify = False,stream=False)
                         elif(self.functions[self._function_name]['request_method'] == 'POST'):
-                                response=requests.post( self._libre_url + route, headers=self._header,json=request_data, verify = False)
+                                response=requests.post( self._libre_url + route, headers=self._header,json=request_data, verify = False,stream=False)
                         elif(self.functions[self._function_name]['request_method'] == 'PUT'):
-                                response=requests.put( self._libre_url + route, headers=self._header,json=request_data, verify = False)
+                                response=requests.put( self._libre_url + route, headers=self._header,json=request_data, verify = False,stream=False)
                         if 'cache' in self.functions[self._function_name] and self.functions[self._function_name]['cache']:
                               self.cache[self.functions[self._function_name]['request_method'] + "-" + route]=response  
                 responses.append(response)
