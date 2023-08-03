@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+from Libs.LibreNMSAPIClient import LibreNMSAPIClient
+import click
+import pandas as pd
+from pathlib import Path  
+libreapi=LibreNMSAPIClient()
+
+#CLI Options
+@click.command()
+@click.argument('parameters', nargs=-1)
+@click.option('-x', '--xlsx',help='Write output to xlsx at specified location')
+@click.option('-c', '--csv',help='Write output to csv at specified location')
+def main(parameters,xlsx,csv):
+    '''
+    This Script makes the LibreNMS API endpoints accessible through commandline.
+    The command structure for GET, and DELETE request methods is lnms <function> <parameters>
+    The command structure for POST,PATCH, and PUT request mothods is lnms <json of object> <function> <parameters>
+    Parameter order should be in the order they appear in the function route.
+    For more information on what each API function does, please check LibreNMS Documentation.
+    '''
+    if not parameters:
+        funcs=pd.DataFrame.from_dict(libreapi.functions,orient='index')
+        funcs.drop(columns=['response_key','cache','flags'],inplace=True)
+        funcs.sort_index(inplace=True)
+        funcs.rename_axis("Available Functions",axis=1,inplace=True)
+        print("For help execute lnmsa --help")
+        print(funcs.to_string())
+    else:
+        first=True
+        params=[]
+        function=""
+        for param in parameters:
+            if first:
+                function=libreapi.__getattr__(param)
+                first=False
+            else:
+                params.append(param)
+        print("Requesting Data from Libre")
+        try:
+            response=function(*params)
+        except Exception as err:
+            print("An Error occurred")
+            print(str(err))
+            exit()
+        if type(response) is list:
+            data=pd.DataFrame(response)
+        else:
+            data=pd.DataFrame.from_dict(response,orient='index')
+        if xlsx == None and csv == None:
+            print("Data from Libre:\n" + data.to_string())
+        else:
+            if xlsx:
+                with pd.ExcelWriter(xlsx) as work_book:
+                    data.to_excel(work_book, engine="xlsxwriter")
+            if csv:
+                filepath = Path(csv)  
+                filepath.parent.mkdir(parents=True, exist_ok=True)  
+                data.to_csv(filepath)
+            print("Data written to file")
+                
+
+if __name__ == '__main__':
+    main()
