@@ -2,7 +2,8 @@
 from Libs.LibreNMSAPIClient import LibreNMSAPIClient
 import click
 import pandas as pd
-from pathlib import Path  
+from pathlib import Path
+import sys
 libreapi=LibreNMSAPIClient()
 
 #CLI Options
@@ -10,11 +11,13 @@ libreapi=LibreNMSAPIClient()
 @click.argument('parameters', nargs=-1)
 @click.option('-x', '--xlsx',help='Write output to xlsx at specified location')
 @click.option('-c', '--csv',help='Write output to csv at specified location')
-def main(parameters,xlsx,csv):
+@click.option('-s', '--sort',help='Column to sort data by')
+@click.option('-sa','--sort_ascending', help='Sort data in Ascending Order',is_flag=True,default=False)
+def main(parameters,xlsx,csv,sort,sort_ascending):
     '''
     This Script makes the LibreNMS API endpoints accessible through commandline.
-    The command structure for GET, and DELETE request methods is lnms <function> <parameters>
-    The command structure for POST,PATCH, and PUT request mothods is lnms <json of object> <function> <parameters>
+    The command structure for GET, and DELETE request methods is 'lnmsa <function> <parameters>'
+    The command structure for POST,PATCH, and PUT request mothods is 'lnmsa <json of object> <function> <parameters>'
     Parameter order should be in the order they appear in the function route.
     For more information on what each API function does, please check LibreNMS Documentation.
     '''
@@ -46,16 +49,22 @@ def main(parameters,xlsx,csv):
             data=pd.DataFrame(response)
         else:
             data=pd.DataFrame.from_dict(response,orient='index')
+        if sort:
+            data.sort_values(by=[sort], ascending=sort_ascending,inplace=True)
         if xlsx == None and csv == None:
-            print("Data from Libre:\n" + data.to_string())
+            try:
+                print("Data from Libre:\n" + data.to_string(index=False))
+            except (BrokenPipeError, IOError):
+                pass
+            sys.stderr.close()
         else:
             if xlsx:
                 with pd.ExcelWriter(xlsx) as work_book:
-                    data.to_excel(work_book, engine="xlsxwriter")
+                    data.to_excel(work_book, engine="xlsxwriter",index=False)
             if csv:
                 filepath = Path(csv)  
                 filepath.parent.mkdir(parents=True, exist_ok=True)  
-                data.to_csv(filepath)
+                data.to_csv(filepath,index=False)
             print("Data written to file")
                 
 
