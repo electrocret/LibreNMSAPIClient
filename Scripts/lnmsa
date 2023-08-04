@@ -50,7 +50,10 @@ def main(parameters,xlsx,csv,sort,sort_ascending):
         else:
             data=pd.DataFrame.from_dict(response,orient='index')
         if sort:
-            data.sort_values(by=[sort], ascending=sort_ascending,inplace=True)
+            if sort in data:
+                data.sort_values(by=[sort], ascending=sort_ascending,inplace=True)
+            else:
+                print("Sort Column not found")
         if xlsx == None and csv == None:
             try:
                 print("Data from Libre:\n" + data.to_string(index=False))
