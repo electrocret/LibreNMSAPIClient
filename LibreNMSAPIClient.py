@@ -733,7 +733,7 @@ class LibreNMSAPIClient:
         function_name=function_name.lower()
         if function_name not in self.functions:
                 sfunction_name=function_name.split('_',1) #Check for flags in function call
-                if 1 in sfunction_name and sfunction_name[1] in self.functions:
+                if len(sfunction_name)== 2 and sfunction_name[1] in self.functions:
                         self._flags=sfunction_name[0]
                         function_name=sfunction_name[1]
                 else:
