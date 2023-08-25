@@ -621,7 +621,9 @@ class LibreNMSAPIClient:
                         else:
                                 output = output + '&' + qparam
                                 param_value=True
-                elif type(qparam) == list:
+                elif type(qparam) == list or type(qparam) == dict:
+                        if type(qparam) == dict :
+                                qparam=list(qparam.values())
                         nest_output,first_qparam=self._gen_qparams(qparam,first_qparam,param_value)
                         output= output + nest_output
                 else:
@@ -635,6 +637,8 @@ class LibreNMSAPIClient:
                 return [route]
         if re.findall('\/:',route) : #Checks if any params are in URL path ( /: ) ie required parameter.
                param=params.pop()
+               if type(param) == dict :
+                   param=list(param.values())
                if type(param) == list :
                         output = list()
                         for subparam in param:
