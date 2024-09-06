@@ -127,6 +127,12 @@ class LibreNMSAPIClient:
             'request_method': 'GET',
             'response_key':'graph_data',
         },
+        'get_poller_group' : {
+            'route': '/api/v0/poller_group/:poller_group',
+            'request_method': 'GET',
+            'response_key':'get_poller_group',
+            'flags':'o',
+        },
         'delete_bill' : {
             'route': '/api/v0/bills/:id',
             'request_method': 'DELETE',
@@ -485,6 +491,12 @@ class LibreNMSAPIClient:
             'route': '/api/v0/resources/ip/networks/:id/ip',
             'request_method': 'GET',
             'response_key':'addresses',
+            'cache':True
+        },
+        'list_fdb_detail' : {
+            'route': '/api/v0/resources/fdb/:mac/detail',
+            'request_method': 'GET',
+            'response_key':'ports_fdb',
             'cache':True
         },
         'list_ip_networks' : {
